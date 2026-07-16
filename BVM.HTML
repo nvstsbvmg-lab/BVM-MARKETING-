@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>BVM Global School Marketing Map</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+
+html,body{
+margin:0;
+height:100%;
+font-family:Arial,Helvetica,sans-serif;
+}
+
+#map{
+height:100vh;
+width:100%;
+}
+
+.leaflet-popup-content{
+min-width:240px;
+}
+
+.popupTitle{
+font-size:18px;
+font-weight:bold;
+color:#1565c0;
+margin-bottom:8px;
+}
+
+.row{
+margin:4px 0;
+}
+
+.button{
+display:inline-block;
+margin-top:10px;
+padding:8px 12px;
+background:#1976d2;
+color:white;
+text-decoration:none;
+border-radius:5px;
+}
+
+.button:hover{
+background:#125ea8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+//========================================================
+// SCHOOL LOCATION
+//========================================================
+
+const school=[12.835318434543145,77.61820099340213];
+
+//========================================================
+// MARKETING LOCATIONS
+//========================================================
+
+const points=[
+
+[12.84393331689802,77.63482483318508],
+[12.84041489966115,77.64417089507711],
+[12.850986362150598,77.65089031399407],
+[12.840463908641576,77.65187825888354],
+[12.830325714722063,77.66387122134542],
+[12.8197978337445,77.65084704247408],
+[12.836567315993339,77.66480740765083],
+[12.870356441166289,77.62400924889532],
+[12.872728259073837,77.61665100495243],
+[12.8786902413341,77.60969477166839],
+[12.876649360088669,77.5951529151263],
+[12.862762273457585,77.61512279624192],
+[12.845536289227491,77.59431751903631],
+[12.845833066304845,77.60928014582812],
+[12.872081758957771,77.59642575609615]
+
+];
+
+//========================================================
+// MAP
+//========================================================
+
+const map=L.map("map");
+
+L.tileLayer(
+"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+{
+maxZoom:19,
+attribution:"© OpenStreetMap"
+}
+).addTo(map);
+
+//========================================================
+// SCHOOL ICON
+//========================================================
+
+const schoolIcon=L.icon({
+
+iconUrl:"https://cdn-icons-png.flaticon.com/512/167/167707.png",
+
+iconSize:[42,42],
+
+iconAnchor:[21,42],
+
+popupAnchor:[0,-35]
+
+});
+
+//========================================================
+// SCHOOL MARKER
+//========================================================
+
+L.marker(school,{icon:schoolIcon})
+.addTo(map)
+.bindPopup(`
+<div class="popupTitle">
+🏫 BVM Global School
+</div>
+
+<div class="row">
+School Location
+</div>
+
+<a class="button"
+target="_blank"
+href="https://www.google.com/maps?q=${school[0]},${school[1]}">
+Open in Google Maps
+</a>
+`);
+
+//========================================================
+// REVERSE GEOCODING
+//========================================================
+
+async function getAddress(lat,lng){
+
+const url=
+`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+
+const response=await fetch(url);
+
+return await response.json();
+
+}
+
+//========================================================
+// MARKERS
+//========================================================
+
+let bounds=[];
+
+bounds.push(school);
+
+points.forEach(function(pt){
+
+bounds.push(pt);
+
+const marker=L.marker(pt).addTo(map);
+
+marker.on("click",async function(){
+
+marker.bindPopup("Loading location...").openPopup();
+
+try{
+
+const data=await getAddress(pt[0],pt[1]);
+
+const address=data.address || {};
+
+const area=
+address.suburb ||
+address.neighbourhood ||
+address.village ||
+address.town ||
+address.city ||
+"Unknown";
+
+const road=
+address.road ||
+address.residential ||
+address.pedestrian ||
+"Not Available";
+
+marker.setPopupContent(`
+
+<div class="popupTitle">
+📍 ${area}
+</div>
+
+<div class="row">
+<b>Street :</b> ${road}
+</div>
+
+<div class="row">
+<b>Address :</b><br>
+${data.display_name}
+</div>
+
+<hr>
+
+<div class="row">
+<b>Latitude :</b><br>
+${pt[0]}
+</div>
+
+<div class="row">
+<b>Longitude :</b><br>
+${pt[1]}
+</div>
+
+<a class="button"
+target="_blank"
+href="https://www.google.com/maps?q=${pt[0]},${pt[1]}">
+
+Open in Google Maps
+
+</a>
+
+`);
+
+}catch{
+
+marker.setPopupContent("Unable to fetch address.");
+
+}
+
+});
+
+});
+
+//========================================================
+// FIT ALL MARKERS
+//========================================================
+
+map.fitBounds(bounds);
+
+</script>
+
+</body>
+</html>
